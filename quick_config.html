@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>快速API配置</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .success { color: green; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 TYQ定制版 - 快速API配置</h1>
+        <p>在这里配置你的Google API密钥，然后复制到浏览器控制台执行</p>
+        
+        <div class="form-group">
+            <label for="apiKey">Google API密钥:</label>
+            <input type="text" id="apiKey" placeholder="输入你的Google API密钥（以AI开头）">
+        </div>
+        
+        <button onclick="generateConfig()">生成配置代码</button>
+        
+        <div id="result" style="margin-top: 20px;"></div>
+    </div>
+
+    <script>
+        function generateConfig() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            if (!apiKey) {
+                alert('请输入API密钥');
+                return;
+            }
+            
+            const configCode = `
+// 复制以下代码到浏览器控制台执行
+const config = {
+  textApis: [{
+    id: 'google-text-' + Date.now(),
+    name: 'Google Gemini',
+    type: 'text',
+    provider: 'google',
+    apiKey: '${apiKey}',
+    baseUrl: 'https://generativelanguage.googleapis.com',
+    model: 'gemini-2.5-flash',
+    maxTokens: 8192,
+    temperature: 0.7,
+    enabled: true
+  }],
+  imageApis: [{
+    id: 'google-image-' + Date.now(),
+    name: 'Google Gemini Image',
+    type: 'image',
+    provider: 'google',
+    apiKey: '${apiKey}',
+    model: 'gemini-3-pro-image-preview',
+    aspectRatio: '16:9',
+    resolution: '2K',
+    enabled: true
+  }],
+  defaultTextApi: 'google-text-' + Date.now(),
+  defaultImageApi: 'google-image-' + Date.now()
+};
+
+localStorage.setItem('api-config-store', JSON.stringify({
+  state: config,
+  version: 0
+}));
+
+console.log('✅ API配置已保存！请刷新页面查看效果。');
+alert('配置已保存！请刷新页面。');
+            `;
+            
+            document.getElementById('result').innerHTML = `
+                <h3>配置代码：</h3>
+                <textarea style="width: 100%; height: 200px; font-family: monospace;">${configCode}</textarea>
+                <div class="success">
+                    <p><strong>使用步骤：</strong></p>
+                    <ol>
+                        <li>复制上面的代码</li>
+                        <li>在TYQ定制版页面按F12打开开发者工具</li>
+                        <li>切换到Console标签</li>
+                        <li>粘贴代码并按回车执行</li>
+                        <li>刷新页面查看效果</li>
+                    </ol>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

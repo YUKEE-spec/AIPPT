@@ -1,0 +1,634 @@
+"""
+AI Service - handles all AI model interactions with dynamic API providers
+Based on demo.py and gemini_genai.py
+"""
+import os
+import json
+import re
+import logging
+import requests
+from typing import List, Dict, Optional, Union
+from textwrap import dedent
+from PIL import Image
+from .prompts import (
+    get_outline_generation_prompt,
+    get_outline_parsing_prompt,
+    get_page_description_prompt,
+    get_image_generation_prompt,
+    get_image_edit_prompt,
+    get_description_to_outline_prompt,
+    get_description_split_prompt,
+    get_outline_refinement_prompt,
+    get_descriptions_refinement_prompt
+)
+from .api_providers.factory import ProviderFactory
+from .api_providers.base import BaseTextProvider, BaseImageProvider, ProviderError
+
+logger = logging.getLogger(__name__)
+
+
+class ProjectContext:
+    """项目上下文数据类，统一管理 AI 需要的所有项目信息"""
+    
+    def __init__(self, project_or_dict, reference_files_content: Optional[List[Dict[str, str]]] = None):
+        """
+        Args:
+            project_or_dict: 项目对象（Project model）或项目字典（project.to_dict()）
+            reference_files_content: 参考文件内容列表
+        """
+        # 支持直接传入 Project 对象，避免 to_dict() 调用，提升性能
+        if hasattr(project_or_dict, 'idea_prompt'):
+            # 是 Project 对象
+            self.idea_prompt = project_or_dict.idea_prompt
+            self.outline_text = project_or_dict.outline_text
+            self.description_text = project_or_dict.description_text
+            self.creation_type = project_or_dict.creation_type or 'idea'
+        else:
+            # 是字典
+            self.idea_prompt = project_or_dict.get('idea_prompt')
+            self.outline_text = project_or_dict.get('outline_text')
+            self.description_text = project_or_dict.get('description_text')
+            self.creation_type = project_or_dict.get('creation_type', 'idea')
+        
+        self.reference_files_content = reference_files_content or []
+    
+    def to_dict(self) -> Dict:
+        """转换为字典，方便传递"""
+        return {
+            'idea_prompt': self.idea_prompt,
+            'outline_text': self.outline_text,
+            'description_text': self.description_text,
+            'creation_type': self.creation_type,
+            'reference_files_content': self.reference_files_content
+        }
+
+
+class AIService:
+    """Service for AI model interactions with dynamic API providers"""
+    
+    def __init__(self, text_config: Dict = None, image_config: Dict = None):
+        """
+        Initialize AI service with API provider configurations
+        
+        Args:
+            text_config: Configuration for text generation provider
+            image_config: Configuration for image generation provider
+        """
+        self.text_provider = None
+        self.image_provider = None
+        
+        # Initialize text provider
+        if text_config:
+            try:
+                self.text_provider = ProviderFactory.create_text_provider(
+                    provider_type=text_config.get('provider', 'google'),
+                    api_key=text_config.get('api_key', ''),
+                    base_url=text_config.get('base_url'),
+                    model=text_config.get('model'),
+                    max_tokens=text_config.get('max_tokens'),
+                    temperature=text_config.get('temperature'),
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize text provider: {str(e)}")
+                self.text_provider = None
+        
+        # Initialize image provider
+        if image_config:
+            try:
+                self.image_provider = ProviderFactory.create_image_provider(
+                    provider_type=image_config.get('provider', 'google'),
+                    api_key=image_config.get('api_key', ''),
+                    base_url=image_config.get('base_url'),
+                    model=image_config.get('model'),
+                    aspect_ratio=image_config.get('aspect_ratio'),
+                    resolution=image_config.get('resolution'),
+                    style=image_config.get('style'),
+                )
+            except Exception as e:
+                logger.error(f"Failed to initialize image provider: {str(e)}")
+                self.image_provider = None
+    
+    def _ensure_text_provider(self):
+        """Ensure text provider is available"""
+        if not self.text_provider:
+            raise ProviderError("No text generation provider configured")
+    
+    def _ensure_image_provider(self):
+        """Ensure image provider is available"""
+        if not self.image_provider:
+            raise ProviderError("No image generation provider configured")
+    
+    @staticmethod
+    def extract_image_urls_from_markdown(text: str) -> List[str]:
+        """
+        从 markdown 文本中提取图片 URL
+        
+        Args:
+            text: Markdown 文本，可能包含 ![](url) 格式的图片
+            
+        Returns:
+            图片 URL 列表（包括 http/https URL 和 /files/mineru/ 开头的本地路径）
+        """
+        if not text:
+            return []
+        
+        # 匹配 markdown 图片语法: ![](url) 或 ![alt](url)
+        pattern = r'!\[.*?\]\((.*?)\)'
+        matches = re.findall(pattern, text)
+        
+        # 过滤掉空字符串，支持 http/https URL 和 /files/mineru/ 开头的本地路径
+        urls = []
+        for url in matches:
+            url = url.strip()
+            if url and (url.startswith('http://') or url.startswith('https://') or url.startswith('/files/mineru/')):
+                urls.append(url)
+        
+        return urls
+    
+    @staticmethod
+    def remove_markdown_images(text: str) -> str:
+        """
+        从文本中移除 Markdown 图片链接，只保留 alt text（描述文字）
+        
+        Args:
+            text: 包含 Markdown 图片语法的文本
+            
+        Returns:
+            移除图片链接后的文本，保留描述文字
+        """
+        if not text:
+            return text
+        
+        # 将 ![描述文字](url) 替换为 描述文字
+        # 如果没有描述文字（空的 alt text），则完全删除该图片链接
+        def replace_image(match):
+            alt_text = match.group(1).strip()
+            # 如果有描述文字，保留它；否则删除整个链接
+            return alt_text if alt_text else ''
+        
+        pattern = r'!\[(.*?)\]\([^\)]+\)'
+        cleaned_text = re.sub(pattern, replace_image, text)
+        
+        # 清理可能产生的多余空行
+        cleaned_text = re.sub(r'\n\s*\n\s*\n', '\n\n', cleaned_text)
+        
+        return cleaned_text
+    
+    @staticmethod
+    def _convert_mineru_path_to_local(mineru_path: str) -> Optional[str]:
+        """
+        将 /files/mineru/{extract_id}/{rel_path} 格式的路径转换为本地文件系统路径（支持前缀匹配）
+        
+        Args:
+            mineru_path: MinerU URL 路径，格式为 /files/mineru/{extract_id}/{rel_path}
+            
+        Returns:
+            本地文件系统路径，如果转换失败则返回 None
+        """
+        from utils.path_utils import find_mineru_file_with_prefix
+        
+        matched_path = find_mineru_file_with_prefix(mineru_path)
+        return str(matched_path) if matched_path else None
+    
+    @staticmethod
+    def download_image_from_url(url: str) -> Optional[Image.Image]:
+        """
+        从 URL 下载图片并返回 PIL Image 对象
+        
+        Args:
+            url: 图片 URL
+            
+        Returns:
+            PIL Image 对象，如果下载失败则返回 None
+        """
+        try:
+            logger.debug(f"Downloading image from URL: {url}")
+            response = requests.get(url, timeout=30, stream=True)
+            response.raise_for_status()
+            
+            # 从响应内容创建 PIL Image
+            image = Image.open(response.raw)
+            # 确保图片被加载
+            image.load()
+            logger.debug(f"Successfully downloaded image: {image.size}, {image.mode}")
+            return image
+        except Exception as e:
+            logger.error(f"Failed to download image from {url}: {str(e)}")
+            return None
+    
+    def generate_outline(self, project_context: ProjectContext) -> List[Dict]:
+        """
+        Generate PPT outline from idea prompt
+        Based on demo.py gen_outline()
+        
+        Args:
+            project_context: 项目上下文对象，包含所有原始信息
+            
+        Returns:
+            List of outline items (may contain parts with pages or direct pages)
+        """
+        self._ensure_text_provider()
+        
+        outline_prompt = get_outline_generation_prompt(project_context)
+        
+        # Record API usage for statistics
+        import time
+        start_time = time.time()
+        success = False
+        
+        try:
+            response_text = self.text_provider.generate_text(outline_prompt)
+            success = True
+            
+            outline_text = response_text.strip().strip("```json").strip("```").strip()
+            outline = json.loads(outline_text)
+            return outline
+        except Exception as e:
+            logger.error(f"Failed to generate outline: {str(e)}")
+            raise
+        finally:
+            # Log usage statistics
+            response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            provider_name = getattr(self.text_provider, 'provider_type', 'unknown')
+            logger.info(f"Text API usage - Provider: {provider_name}, Success: {success}, Response time: {response_time:.2f}ms")
+    
+    def parse_outline_text(self, project_context: ProjectContext) -> List[Dict]:
+        """
+        Parse user-provided outline text into structured outline format
+        This method analyzes the text and splits it into pages without modifying the original text
+        
+        Args:
+            project_context: 项目上下文对象，包含所有原始信息
+        
+        Returns:
+            List of outline items (may contain parts with pages or direct pages)
+        """
+        self._ensure_text_provider()
+        
+        parse_prompt = get_outline_parsing_prompt(project_context)
+        response_text = self.text_provider.generate_text(parse_prompt)
+        
+        outline_json = response_text.strip().strip("```json").strip("```").strip()
+        outline = json.loads(outline_json)
+        return outline
+    
+    def flatten_outline(self, outline: List[Dict]) -> List[Dict]:
+        """
+        Flatten outline structure to page list
+        Based on demo.py flatten_outline()
+        """
+        pages = []
+        for item in outline:
+            if "part" in item and "pages" in item:
+                # This is a part, expand its pages
+                for page in item["pages"]:
+                    page_with_part = page.copy()
+                    page_with_part["part"] = item["part"]
+                    pages.append(page_with_part)
+            else:
+                # This is a direct page
+                pages.append(item)
+        return pages
+    
+    def generate_page_description(self, project_context: ProjectContext, outline: List[Dict], 
+                                 page_outline: Dict, page_index: int) -> str:
+        """
+        Generate description for a single page
+        Based on demo.py gen_desc() logic
+        
+        Args:
+            project_context: 项目上下文对象，包含所有原始信息
+            outline: Complete outline
+            page_outline: Outline for this specific page
+            page_index: Page number (1-indexed)
+        
+        Returns:
+            Text description for the page
+        """
+        self._ensure_text_provider()
+        
+        part_info = f"\nThis page belongs to: {page_outline['part']}" if 'part' in page_outline else ""
+        
+        desc_prompt = get_page_description_prompt(
+            project_context=project_context,
+            outline=outline,
+            page_outline=page_outline,
+            page_index=page_index,
+            part_info=part_info
+        )
+        
+        # Record API usage for statistics
+        import time
+        start_time = time.time()
+        success = False
+        
+        try:
+            response_text = self.text_provider.generate_text(desc_prompt)
+            success = True
+            return dedent(response_text)
+        except Exception as e:
+            logger.error(f"Failed to generate page description: {str(e)}")
+            raise
+        finally:
+            # Log usage statistics
+            response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            provider_name = getattr(self.text_provider, 'provider_type', 'unknown')
+            logger.info(f"Text API usage - Provider: {provider_name}, Success: {success}, Response time: {response_time:.2f}ms")
+    
+    def generate_outline_text(self, outline: List[Dict]) -> str:
+        """
+        Convert outline to text format for prompts
+        Based on demo.py gen_outline_text()
+        """
+        text_parts = []
+        for i, item in enumerate(outline, 1):
+            if "part" in item and "pages" in item:
+                text_parts.append(f"{i}. {item['part']}")
+            else:
+                text_parts.append(f"{i}. {item.get('title', 'Untitled')}")
+        result = "\n".join(text_parts)
+        return dedent(result)
+    
+    def generate_image_prompt(self, outline: List[Dict], page: Dict, 
+                            page_desc: str, page_index: int, 
+                            has_material_images: bool = False,
+                            extra_requirements: Optional[str] = None) -> str:
+        """
+        Generate image generation prompt for a page
+        Based on demo.py gen_prompts()
+        
+        Args:
+            outline: Complete outline
+            page: Page outline data
+            page_desc: Page description text
+            page_index: Page number (1-indexed)
+            has_material_images: 是否有素材图片（从项目描述中提取的图片）
+            extra_requirements: Optional extra requirements to apply to all pages
+        
+        Returns:
+            Image generation prompt
+        """
+        outline_text = self.generate_outline_text(outline)
+        
+        # Determine current section
+        if 'part' in page:
+            current_section = page['part']
+        else:
+            current_section = f"{page.get('title', 'Untitled')}"
+        
+        # 在传给文生图模型之前，移除 Markdown 图片链接
+        # 图片本身已经通过 additional_ref_images 传递，只保留文字描述
+        cleaned_page_desc = self.remove_markdown_images(page_desc)
+        
+        prompt = get_image_generation_prompt(
+            page_desc=cleaned_page_desc,
+            outline_text=outline_text,
+            current_section=current_section,
+            has_material_images=has_material_images,
+            extra_requirements=extra_requirements
+        )
+        
+        return prompt
+    
+    def generate_image(self, prompt: str, ref_image_path: Optional[str] = None, 
+                      aspect_ratio: str = "16:9", resolution: str = "2K",
+                      additional_ref_images: Optional[List[Union[str, Image.Image]]] = None) -> Optional[Image.Image]:
+        """
+        Generate image using configured image provider
+        
+        Args:
+            prompt: Image generation prompt
+            ref_image_path: Path to reference image (optional)
+            aspect_ratio: Image aspect ratio
+            resolution: Image resolution
+            additional_ref_images: 额外的参考图片列表，可以是本地路径、URL 或 PIL Image 对象
+        
+        Returns:
+            PIL Image object or None if failed
+        
+        Raises:
+            Exception with detailed error message if generation fails
+        """
+        self._ensure_image_provider()
+        
+        # Record API usage for statistics
+        import time
+        start_time = time.time()
+        success = False
+        
+        try:
+            logger.debug(f"Reference image: {ref_image_path}")
+            if additional_ref_images:
+                logger.debug(f"Additional reference images: {len(additional_ref_images)}")
+            logger.debug(f"Config - aspect_ratio: {aspect_ratio}, resolution: {resolution}")
+
+            # Load reference image if provided
+            ref_image = None
+            if ref_image_path and os.path.exists(ref_image_path):
+                ref_image = Image.open(ref_image_path)
+            
+            # Process additional reference images
+            processed_additional_refs = []
+            if additional_ref_images:
+                for ref_img in additional_ref_images:
+                    if isinstance(ref_img, Image.Image):
+                        processed_additional_refs.append(ref_img)
+                    elif isinstance(ref_img, str):
+                        if os.path.exists(ref_img):
+                            processed_additional_refs.append(Image.open(ref_img))
+                        elif ref_img.startswith('http://') or ref_img.startswith('https://'):
+                            downloaded_img = self.download_image_from_url(ref_img)
+                            if downloaded_img:
+                                processed_additional_refs.append(downloaded_img)
+                        elif ref_img.startswith('/files/mineru/'):
+                            local_path = self._convert_mineru_path_to_local(ref_img)
+                            if local_path and os.path.exists(local_path):
+                                processed_additional_refs.append(Image.open(local_path))
+            
+            # Generate image using provider
+            result = self.image_provider.generate_image(
+                prompt=prompt,
+                ref_image=ref_image,
+                additional_ref_images=processed_additional_refs,
+                aspect_ratio=aspect_ratio,
+                resolution=resolution
+            )
+            success = True
+            return result
+            
+        except Exception as e:
+            error_detail = f"Error generating image: {type(e).__name__}: {str(e)}"
+            logger.error(error_detail, exc_info=True)
+            raise Exception(error_detail) from e
+        finally:
+            # Log usage statistics
+            response_time = (time.time() - start_time) * 1000  # Convert to milliseconds
+            provider_name = getattr(self.image_provider, 'provider_type', 'unknown')
+            logger.info(f"Image API usage - Provider: {provider_name}, Success: {success}, Response time: {response_time:.2f}ms")
+    
+    def edit_image(self, prompt: str, current_image_path: str,
+                  aspect_ratio: str = "16:9", resolution: str = "2K",
+                  original_description: str = None,
+                  additional_ref_images: Optional[List[Union[str, Image.Image]]] = None) -> Optional[Image.Image]:
+        """
+        Edit existing image with natural language instruction
+        
+        Args:
+            prompt: Edit instruction
+            current_image_path: Path to current page image
+            aspect_ratio: Image aspect ratio
+            resolution: Image resolution
+            original_description: Original page description to include in prompt
+            additional_ref_images: 额外的参考图片列表，可以是本地路径、URL 或 PIL Image 对象
+        
+        Returns:
+            PIL Image object or None if failed
+        """
+        self._ensure_image_provider()
+        
+        try:
+            # Load current image
+            if not os.path.exists(current_image_path):
+                raise FileNotFoundError(f"Current image not found: {current_image_path}")
+            
+            current_image = Image.open(current_image_path)
+            
+            # Process additional reference images
+            processed_additional_refs = []
+            if additional_ref_images:
+                for ref_img in additional_ref_images:
+                    if isinstance(ref_img, Image.Image):
+                        processed_additional_refs.append(ref_img)
+                    elif isinstance(ref_img, str):
+                        if os.path.exists(ref_img):
+                            processed_additional_refs.append(Image.open(ref_img))
+                        elif ref_img.startswith('http://') or ref_img.startswith('https://'):
+                            downloaded_img = self.download_image_from_url(ref_img)
+                            if downloaded_img:
+                                processed_additional_refs.append(downloaded_img)
+            
+            # Edit image using provider
+            return self.image_provider.edit_image(
+                prompt=prompt,
+                current_image=current_image,
+                original_description=original_description,
+                additional_ref_images=processed_additional_refs,
+                aspect_ratio=aspect_ratio,
+                resolution=resolution
+            )
+            
+        except Exception as e:
+            error_detail = f"Error editing image: {type(e).__name__}: {str(e)}"
+            logger.error(error_detail, exc_info=True)
+            raise Exception(error_detail) from e
+    
+    def parse_description_to_outline(self, project_context: ProjectContext) -> List[Dict]:
+        """
+        从描述文本解析出大纲结构
+        
+        Args:
+            project_context: 项目上下文对象，包含所有原始信息
+        
+        Returns:
+            List of outline items (may contain parts with pages or direct pages)
+        """
+        self._ensure_text_provider()
+        
+        parse_prompt = get_description_to_outline_prompt(project_context)
+        response_text = self.text_provider.generate_text(parse_prompt)
+        
+        outline_json = response_text.strip().strip("```json").strip("```").strip()
+        outline = json.loads(outline_json)
+        return outline
+    
+    def parse_description_to_page_descriptions(self, project_context: ProjectContext, outline: List[Dict]) -> List[str]:
+        """
+        从描述文本切分出每页描述
+        
+        Args:
+            project_context: 项目上下文对象，包含所有原始信息
+            outline: 已解析出的大纲结构
+        
+        Returns:
+            List of page descriptions (strings), one for each page in the outline
+        """
+        self._ensure_text_provider()
+        
+        split_prompt = get_description_split_prompt(project_context, outline)
+        response_text = self.text_provider.generate_text(split_prompt)
+        
+        descriptions_json = response_text.strip().strip("```json").strip("```").strip()
+        descriptions = json.loads(descriptions_json)
+        
+        # 确保返回的是字符串列表
+        if isinstance(descriptions, list):
+            return [str(desc) for desc in descriptions]
+        else:
+            raise ValueError("Expected a list of page descriptions, but got: " + str(type(descriptions)))
+    
+    def refine_outline(self, current_outline: List[Dict], user_requirement: str,
+                      project_context: ProjectContext,
+                      previous_requirements: Optional[List[str]] = None) -> List[Dict]:
+        """
+        根据用户要求修改已有大纲
+        
+        Args:
+            current_outline: 当前的大纲结构
+            user_requirement: 用户的新要求
+            project_context: 项目上下文对象，包含所有原始信息
+            previous_requirements: 之前的修改要求列表（可选）
+        
+        Returns:
+            修改后的大纲结构
+        """
+        self._ensure_text_provider()
+        
+        refinement_prompt = get_outline_refinement_prompt(
+            current_outline=current_outline,
+            user_requirement=user_requirement,
+            project_context=project_context,
+            previous_requirements=previous_requirements
+        )
+        
+        response_text = self.text_provider.generate_text(refinement_prompt)
+        outline_json = response_text.strip().strip("```json").strip("```").strip()
+        outline = json.loads(outline_json)
+        return outline
+    
+    def refine_descriptions(self, current_descriptions: List[Dict], user_requirement: str,
+                           project_context: ProjectContext,
+                           outline: List[Dict] = None,
+                           previous_requirements: Optional[List[str]] = None) -> List[str]:
+        """
+        根据用户要求修改已有页面描述
+        
+        Args:
+            current_descriptions: 当前的页面描述列表，每个元素包含 {index, title, description_content}
+            user_requirement: 用户的新要求
+            project_context: 项目上下文对象，包含所有原始信息
+            outline: 完整的大纲结构（可选）
+            previous_requirements: 之前的修改要求列表（可选）
+        
+        Returns:
+            修改后的页面描述列表（字符串列表）
+        """
+        self._ensure_text_provider()
+        
+        refinement_prompt = get_descriptions_refinement_prompt(
+            current_descriptions=current_descriptions,
+            user_requirement=user_requirement,
+            project_context=project_context,
+            outline=outline,
+            previous_requirements=previous_requirements
+        )
+        
+        response_text = self.text_provider.generate_text(refinement_prompt)
+        descriptions_json = response_text.strip().strip("```json").strip("```").strip()
+        descriptions = json.loads(descriptions_json)
+        
+        # 确保返回的是字符串列表
+        if isinstance(descriptions, list):
+            return [str(desc) for desc in descriptions]
+        else:
+            raise ValueError("Expected a list of page descriptions, but got: " + str(type(descriptions)))
+

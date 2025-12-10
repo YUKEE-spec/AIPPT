@@ -1,0 +1,100 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+.venv/
+venv/
+env/
+ENV/
+
+# Node
+**/node_modules/
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+.npm
+.eslintcache
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# 项目特定
+instance/*.db
+instance/*.db-journal
+uploads/
+*.log
+server.log
+server_running.log
+
+# 测试文件
+test_*.py
+*_test.py
+tests/
+
+# 文档和示例
+*.md
+!README.md
+docs/
+demo.py
+gemini_genai.py
+generate-example.py
+*.png
+*.jpg
+*.jpeg
+*.pptx
+*.pdf
+output/
+res.png
+template*.png
+page*.png
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# 环境变量
+.env
+.env.local
+.env.*.local
+
+# 其他
+*.lock
+uv.lock
+LICENSE
+PRD.md
+API设计文档.md
+快速启动指南.md
+*.md
+
+# Windows 特定
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# 构建产物
+dist/
+build/
+*.pptx
+*.pdf
+

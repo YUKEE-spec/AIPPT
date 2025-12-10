@@ -1,0 +1,22 @@
+[project]
+name = "banana-slides"
+version = "0.1.0"
+description = "Banana Slides – AI native PPT generator"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
+    "flask-sqlalchemy>=3.1.1",
+    "google-genai>=1.52.0",
+    "pydantic>=2.9.0",
+    "pillow>=12.0.0",
+    "python-pptx>=1.0.0",
+    "python-dotenv>=1.0.1",
+    "reportlab>=4.1.0",
+    "werkzeug>=3.0.1",
+    "markitdown[all]"
+]
+
+[tool.uv]
+index-url = "https://pypi.tuna.tsinghua.edu.cn/simple"
