@@ -1,6 +1,8 @@
-![1765334697271](image/README/1765334697271.zip)![1765334703511](image/README/1765334703511.zip)![1765334705037](image/README/1765334705037.zip)![1765334706439](image/README/1765334706439.zip)<div align="center">
+<div align="center">
 
 <img width="256" src="https://github.com/user-attachments/assets/6f9e4cf9-912d-4faa-9d37-54fb676f547e">
+
+# 🍌 TYQ定制版 · AI PPT
 
 *Vibe your PPT like vibing code.*
 
@@ -8,30 +10,44 @@
 
 <p>
 
-[![GitHub Stars](https://img.shields.io/github/stars/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/network)
-[![GitHub Watchers](https://img.shields.io/github/watchers/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/watchers)
-
-[![Version](https://img.shields.io/badge/version-v0.1.0-4CAF50.svg)](https://github.com/Anionex/banana-slides)
+[![Version](https://img.shields.io/badge/version-v0.2.0--custom-FF6B6B.svg)](https://github.com/YUKEE-spec/AIPPT)
 ![Docker](https://img.shields.io/badge/Docker-Build-2496ED?logo=docker&logoColor=white)
 [![License](https://img.shields.io/github/license/Anionex/banana-slides?color=FFD54F)](https://github.com/Anionex/banana-slides/blob/main/LICENSE)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-42b883.svg)
 
 </p> 
 
-<b>一个基于nano banana pro🍌的原生AI PPT生成应用，支持想法/大纲/页面描述生成完整PPT演示文稿、文本图片链接自动提取、上传任意素材、口头提出修改，迈向真正的"Vibe PPT"</b>
+<b>基于 <a href="https://github.com/Anionex/banana-slides">Banana Slides</a> 开源项目的定制增强版本</b>
 
 <b>🎯 降低PPT制作门槛，让每个人都能快速创作出美观专业的演示文稿</b>
-
-<br>
-
-*如果该项目对你有用, 欢迎star🌟 &  fork🍴*
 
 <br>
 
 </p>
 
 </div>
+
+## 🚀 定制版特性
+
+本版本在原版 Banana Slides 基础上新增了以下特性：
+
+### ⚙️ 1. 多API配置管理
+- **多服务商支持**：支持 Google Gemini、OpenAI、通义千问、百度文心、DeepSeek 等多种 AI 服务
+- **快速配置向导**：首次使用时提供分步引导，轻松完成 API 配置
+- **灵活切换**：可随时在不同 API 服务商之间切换，支持自定义 OpenAI 兼容接口
+- **配置导入导出**：支持配置文件的导入导出，方便备份和迁移
+
+### 📝 2. 结构化PPT需求输入
+- **表单化输入**：通过结构化表单输入 PPT 主题、受众、风格等信息
+- **智能提示**：根据输入内容自动生成优化的 AI 提示词
+- **需求模板**：预设多种常见场景模板，快速开始创作
+
+### 🔄 3. 批量修改功能
+- **批量选择**：支持多选幻灯片页面进行批量操作
+- **批量重试**：对生成失败或不满意的页面进行批量重新生成
+- **统一风格**：批量应用相同的修改指令，保持 PPT 风格一致性
+
+---
 
 
 ## ✨ 项目缘起

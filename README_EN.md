@@ -2,36 +2,52 @@
 
 <img width="256" src="https://github.com/user-attachments/assets/6f9e4cf9-912d-4faa-9d37-54fb676f547e">
 
+# 🍌 TYQ Custom Edition · AI PPT
+
 *Vibe your PPT like vibing code.*
 
 **[中文](README.md) | English**
 
 <p>
 
-[![GitHub Stars](https://img.shields.io/github/stars/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/stargazers)
-[![GitHub Forks](https://img.shields.io/github/forks/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/network)
-[![GitHub Watchers](https://img.shields.io/github/watchers/Anionex/banana-slides?style=square)](https://github.com/Anionex/banana-slides/watchers)
-
-[![Version](https://img.shields.io/badge/version-v0.1.0-4CAF50.svg)](https://github.com/Anionex/banana-slides)
+[![Version](https://img.shields.io/badge/version-v0.2.0--custom-FF6B6B.svg)](https://github.com/YUKEE-spec/AIPPT)
 ![Docker](https://img.shields.io/badge/Docker-Build-2496ED?logo=docker&logoColor=white)
 [![License](https://img.shields.io/github/license/Anionex/banana-slides?color=FFD54F)](https://github.com/Anionex/banana-slides/blob/main/LICENSE)
 ![PRs Welcome](https://img.shields.io/badge/PRs-welcome-42b883.svg)
 
 </p> 
 
-<b>A native AI-powered PPT generation application based on nano banana pro🍌, supporting idea/outline/page description to generate complete PPT presentations, automatic text and image link extraction, upload any materials, and verbally propose modifications, moving towards true "Vibe PPT"</b>
+<b>A customized enhanced version based on <a href="https://github.com/Anionex/banana-slides">Banana Slides</a> open source project</b>
 
 <b>🎯 Lower the barrier to PPT creation, enabling everyone to quickly create beautiful and professional presentations</b>
-
-<br>
-
-*If this project is useful to you, please star🌟 & fork🍴*
 
 <br>
 
 </p>
 
 </div>
+
+## 🚀 Custom Edition Features
+
+This version adds the following features on top of the original Banana Slides:
+
+### ⚙️ 1. Multi-API Configuration Management
+- **Multi-provider support**: Supports Google Gemini, OpenAI, Qwen, Baidu Wenxin, DeepSeek and other AI services
+- **Quick setup wizard**: Step-by-step guidance for first-time users to easily complete API configuration
+- **Flexible switching**: Switch between different API providers at any time, supports custom OpenAI-compatible interfaces
+- **Import/Export config**: Support configuration file import and export for easy backup and migration
+
+### 📝 2. Structured PPT Requirements Input
+- **Form-based input**: Input PPT topic, audience, style and other information through structured forms
+- **Smart prompts**: Automatically generate optimized AI prompts based on input content
+- **Requirement templates**: Preset templates for common scenarios to quickly start creating
+
+### 🔄 3. Batch Modification
+- **Batch selection**: Support multi-select slide pages for batch operations
+- **Batch retry**: Batch regenerate pages that failed or are unsatisfactory
+- **Unified style**: Apply the same modification instructions in batch to maintain PPT style consistency
+
+---
 
 
 ## ✨ Project Origin
