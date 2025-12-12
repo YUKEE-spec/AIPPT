@@ -4,7 +4,7 @@
 
 # 🍌 PPTer Custom Edition · AI PPT
 
-*Vibe your PPT like vibing code.*
+*AI PPT generation tool built for daily presentation needs*
 
 **[中文](README.md) | English**
 
@@ -16,115 +16,109 @@
 
 </p> 
 
-<b>A customized enhanced version based on <a href="https://github.com/Anionex/banana-slides">Banana Slides</a> open source project</b>
-
-<b>🎯 Lower the barrier to PPT creation, enabling everyone to quickly create beautiful and professional presentations</b>
+<b>Based on <a href="https://github.com/Anionex/banana-slides">Banana Slides</a>, deeply customized for PPTer's daily presentation needs</b>
 
 </div>
 
 ---
 
-## 🚀 Custom Edition Features
+## 💡 Why This Custom Edition?
 
-This version adds the following features on top of the original Banana Slides:
+As a PPTer who frequently needs to make presentations, have you encountered these pain points?
 
-### ⚙️ 1. Multi-API Configuration Management
-- **Multi-provider support**: Supports Google Gemini, OpenAI, Qwen, Baidu Wenxin, DeepSeek and other AI services
-- **Quick setup wizard**: Step-by-step guidance for first-time users to easily complete API configuration
-- **Flexible switching**: Switch between different API providers at any time, supports custom OpenAI-compatible interfaces
-- **Import/Export config**: Support configuration file import and export for easy backup and migration
-
-### 📝 2. Structured PPT Requirements Input
-- **Form-based input**: Input PPT topic, audience, style and other information through structured forms
-- **Smart prompts**: Automatically generate optimized AI prompts based on input content
-- **Requirement templates**: Preset templates for common scenarios to quickly start creating
-
-### 🔄 3. Batch Modification
-- **Batch selection**: Support multi-select slide pages for batch operations
-- **Batch retry**: Batch regenerate pages that failed or are unsatisfactory
-- **Unified style**: Apply the same modification instructions in batch to maintain PPT style consistency
-
----
-
-## 👨‍💻 Use Cases
-
-| User Type | Use Case |
+| 😫 Pain Point | ✅ Custom Edition Solution |
 | --- | --- |
-| **Beginners** | Zero-threshold rapid generation of beautiful PPTs, no design experience required |
-| **PPT Professionals** | Reference AI-generated layouts to quickly gain design inspiration |
-| **Educators** | Quickly convert teaching content into illustrated lesson PPTs |
-| **Students** | Quickly complete assignment presentations, focusing on content rather than layout |
-| **Professionals** | Business proposals, product introductions quickly visualized |
+| **API configuration is troublesome** - Original only supports single API, changing providers requires code changes | **Multi-API one-click switch** - Supports 10+ mainstream AI services, configure directly in frontend |
+| **Difficult to describe requirements** - Don't know how to write prompts for good PPT | **Structured form input** - Fill in topic, audience, style, auto-generate professional prompts |
+| **Inefficient batch modifications** - 5 out of 10 pages unsatisfactory, need to regenerate one by one | **Batch select and retry** - Check unsatisfactory pages, one-click batch regeneration |
+| **Inconsistent style** - Each page generated separately, overall style fragmented | **Unified style commands** - Apply same modifications in batch, maintain consistency |
 
 ---
 
-## 🎯 Core Features
+## 🚀 Three Key Features
 
-### 1. Flexible and Diverse Creation Paths
-Supports three starting methods: **idea**, **outline**, and **page description**:
-- **One-sentence generation**: Enter a topic, AI automatically generates a clear outline and page-by-page content description
-- **Natural language editing**: Supports verbal modification of outline or description, AI responds and adjusts in real-time
-- **Outline/Description mode**: Can be batch-generated with one click or manually adjusted for details
+### ⚙️ 1. Multi-API Configuration - No More Code Changes
 
-### 2. Powerful Material Parsing Capabilities
-- **Multi-format support**: Upload PDF/Docx/MD/Txt and other files, backend automatically parses content
-- **Smart extraction**: Automatically identifies key points, image links, and chart information in text
-- **Style reference**: Supports uploading reference images or templates to customize PPT style
+> 💬 *"Company uses Qwen, home uses DeepSeek, travel uses Google..."*
 
-### 3. "Vibe" Style Natural Language Modification
-- **Local redraw**: Make verbal modifications to unsatisfactory areas
-- **Full page optimization**: Generate high-definition, style-consistent pages
+- **10+ AI providers**: Google Gemini, OpenAI, Qwen, Baidu Wenxin, DeepSeek, Zhipu AI, Moonshot...
+- **Quick setup wizard**: Complete configuration in 3 minutes on first use, no technical knowledge required
+- **One-click switch**: Switch APIs anytime for different scenarios, configurations auto-saved
+- **Import/Export**: Share config files with team, new members get started instantly
 
-### 4. Out-of-the-box Format Export
-- **Multi-format support**: One-click export to standard PPTX or PDF files
-- **Perfect adaptation**: Default 16:9 ratio, layout requires no secondary adjustment
+### 📝 2. Structured Requirements Input - No More Struggling with Prompts
+
+> 💬 *"I just want to make a weekly report PPT, but don't know how to describe it for AI..."*
+
+- **Form-based input**:
+  - 📌 PPT Topic: Weekly Work Report
+  - 👥 Target Audience: Department Manager
+  - 🎨 Style Preference: Clean Business
+  - 📄 Page Count: 8-10 pages
+- **Smart prompt generation**: Auto-assemble professional prompts from form
+- **Scenario templates**: Work reports, project summaries, product introductions, training materials... one-click apply
+
+### 🔄 3. Batch Modification - Double Your Efficiency
+
+> 💬 *"Generated 15 pages, 6 have poor images, do I have to redo them one by one?"*
+
+- **Multi-select mode**: Ctrl+click or box-select multiple pages
+- **Batch retry**: One-click regenerate selected pages
+- **Unified modification**: Apply same modification command to selected pages
+- **Maintain style**: Batch operations automatically inherit overall style settings
+
+---
+
+## 🎯 Typical Use Cases
+
+### 📊 Weekly/Monthly Reports
+```
+Topic: Week 2 December Work Report
+Audience: Department Manager
+Style: Clean Business
+Content: Tasks completed, next week's plan, issues and suggestions
+```
+→ Generate 10-page professional weekly report PPT in 5 minutes
+
+### 🚀 Project Reports
+```
+Topic: XX Project Phase Results Report
+Audience: Company Executives
+Style: Formal Professional
+Content: Project background, progress, results, next steps
+```
+→ Quickly produce presentation-ready project PPT
+
+### 📚 Training Materials
+```
+Topic: New Employee Onboarding - Company Policies
+Audience: New Employees
+Style: Lively Friendly
+Content: Company culture, rules, benefits
+```
+→ Generate illustrated training courseware
 
 ---
 
 ## 📦 Quick Start
 
-### Using Docker Compose🐳 (Recommended)
+### Docker One-Click Deploy (Recommended)
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/YUKEE-spec/AIPPT.git
 cd AIPPT
-
-# 2. Configure environment variables
 cp .env.example .env
-# Edit .env file to configure API keys (optional, can also be configured in frontend)
-
-# 3. Start services
 docker compose up -d
-
-# 4. Access application
-# Frontend: http://localhost:3000
-# Backend: http://localhost:5000
 ```
 
-### Deploy from Source
+Visit http://localhost:3000 to start using
 
-#### Environment Requirements
-- Python 3.10+
-- Node.js 16+ and npm
-- [uv](https://github.com/astral-sh/uv) - Python package manager
-
-#### Start Backend
-```bash
-# Install dependencies
-uv sync
-
-# Start service
-cd backend
-uv run python app.py
-```
-
-#### Start Frontend
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### First Time Use
+1. Click the **"Click to configure API"** status tag on homepage
+2. Follow the wizard to select AI provider and enter API key
+3. Select **Structured Input** mode, fill in PPT requirements
+4. Click generate, wait for AI to complete creation
+5. Batch select and retry unsatisfactory pages
 
 ---
 
@@ -134,7 +128,7 @@ npm run dev
 | --- | --- |
 | **Frontend** | React 18 + TypeScript + Vite 5 + Tailwind CSS + Zustand |
 | **Backend** | Python 3.10+ + Flask 3.0 + SQLite |
-| **AI Capabilities** | Multi-API support (Gemini/OpenAI/Qwen/Baidu Wenxin, etc.) |
+| **AI Capabilities** | Multi-API support (Gemini/OpenAI/Qwen/Baidu Wenxin/DeepSeek, etc.) |
 
 ---
 
