@@ -33,8 +33,14 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
     model: '',
     apiKey: '',
   });
+  const [error, setError] = useState<string | null>(null);
 
   const { addTextApi, addImageApi } = useApiConfigStore();
+
+  const handleStepChange = (nextStep: WizardStep) => {
+    setError(null);
+    setCurrentStep(nextStep);
+  };
 
   const handleComplete = () => {
     console.log('StepByStepApiWizard: handleComplete called', {
@@ -115,6 +121,7 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
       model: '',
       apiKey: '',
     });
+    setError(null);
   };
 
   const renderWelcomeStep = () => (
@@ -145,21 +152,24 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
   );
 
   const renderTextProviderStep = () => (
-    <div className="space-y-6">
-      <div className="text-center">
+    <div className="space-y-6 flex flex-col h-full">
+      <div className="text-center shrink-0">
         <h3 className="text-xl font-semibold mb-2">选择文本生成API</h3>
         <p className="text-gray-600">选择用于生成PPT文本内容的AI服务</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar">
         {Object.entries(API_TEMPLATES.text).map(([key, template]) => (
           <button
             key={key}
-            onClick={() => setSelectedTextProvider(key)}
+            onClick={() => {
+              setSelectedTextProvider(key);
+              setError(null);
+            }}
             className={`p-4 border rounded-lg text-left transition-colors ${
               selectedTextProvider === key
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
             <div className="font-medium">{template.name}</div>
@@ -172,11 +182,14 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
         
         {/* 自定义OpenAI兼容API选项 */}
         <button
-          onClick={() => setSelectedTextProvider('custom')}
+          onClick={() => {
+            setSelectedTextProvider('custom');
+            setError(null);
+          }}
           className={`p-4 border rounded-lg text-left transition-colors ${
             selectedTextProvider === 'custom'
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
+              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -187,19 +200,31 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
         </button>
       </div>
 
-      <div className="flex space-x-3">
-        <Button variant="ghost" onClick={() => setCurrentStep('welcome')} className="flex-1">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          上一步
-        </Button>
-        <Button 
-          onClick={() => setCurrentStep(selectedTextProvider === 'custom' ? 'custom-config' : 'text-config')} 
-          disabled={!selectedTextProvider}
-          className="flex-1"
-        >
-          下一步
-          <ChevronRight className="w-4 h-4 ml-2" />
-        </Button>
+      <div className="shrink-0 space-y-3">
+        {error && (
+          <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100 animate-in fade-in slide-in-from-bottom-2">
+            {error}
+          </div>
+        )}
+        <div className="flex space-x-3">
+          <Button variant="ghost" onClick={() => handleStepChange('welcome')} className="flex-1">
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            上一步
+          </Button>
+          <Button 
+            onClick={() => {
+              if (!selectedTextProvider) {
+                setError('请先选择一个文本生成API提供商');
+                return;
+              }
+              handleStepChange(selectedTextProvider === 'custom' ? 'custom-config' : 'text-config');
+            }}
+            className="flex-1"
+          >
+            下一步
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -275,14 +300,25 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
         </div>
       </div>
 
+      {error && (
+        <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100 animate-in fade-in slide-in-from-bottom-2">
+          {error}
+        </div>
+      )}
+
       <div className="flex space-x-3">
-        <Button variant="ghost" onClick={() => setCurrentStep('text-provider')} className="flex-1">
+        <Button variant="ghost" onClick={() => handleStepChange('text-provider')} className="flex-1">
           <ChevronLeft className="w-4 h-4 mr-2" />
           上一步
         </Button>
         <Button 
-          onClick={() => setCurrentStep('image-provider')} 
-          disabled={!customConfig.name || !customConfig.baseUrl || !customConfig.model || !customConfig.apiKey}
+          onClick={() => {
+            if (!customConfig.name || !customConfig.baseUrl || !customConfig.model || !customConfig.apiKey) {
+              setError('请填写完整的配置信息');
+              return;
+            }
+            handleStepChange('image-provider');
+          }}
           className="flex-1"
         >
           下一步
@@ -315,6 +351,7 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
               placeholder="输入API密钥"
               value={textConfig.apiKey || ''}
               onChange={(e) => setTextConfig((prev: Record<string, string>) => ({ ...prev, apiKey: e.target.value }))}
+              onFocus={() => setError(null)}
             />
           </div>
 
@@ -326,19 +363,31 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
                 placeholder="输入Secret Key"
                 value={textConfig.secretKey || ''}
                 onChange={(e) => setTextConfig((prev: Record<string, string>) => ({ ...prev, secretKey: e.target.value }))}
+                onFocus={() => setError(null)}
               />
             </div>
           )}
         </div>
 
+        {error && (
+          <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100 animate-in fade-in slide-in-from-bottom-2">
+            {error}
+          </div>
+        )}
+
         <div className="flex space-x-3">
-          <Button variant="ghost" onClick={() => setCurrentStep('text-provider')} className="flex-1">
+          <Button variant="ghost" onClick={() => handleStepChange('text-provider')} className="flex-1">
             <ChevronLeft className="w-4 h-4 mr-2" />
             上一步
           </Button>
           <Button 
-            onClick={() => setCurrentStep('image-provider')} 
-            disabled={!textConfig.apiKey || (selectedTextProvider === 'baidu' && !textConfig.secretKey)}
+            onClick={() => {
+              if (!textConfig.apiKey || (selectedTextProvider === 'baidu' && !textConfig.secretKey)) {
+                setError('请填写完整的API配置信息');
+                return;
+              }
+              handleStepChange('image-provider');
+            }}
             className="flex-1"
           >
             下一步
@@ -350,21 +399,24 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
   };
 
   const renderImageProviderStep = () => (
-    <div className="space-y-6">
-      <div className="text-center">
+    <div className="space-y-6 flex flex-col h-full">
+      <div className="text-center shrink-0">
         <h3 className="text-xl font-semibold mb-2">选择图像生成API</h3>
         <p className="text-gray-600">选择用于生成PPT图片的AI服务（可选）</p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3">
+      <div className="grid grid-cols-1 gap-3 overflow-y-auto max-h-[50vh] pr-2 custom-scrollbar">
         {Object.entries(API_TEMPLATES.image).map(([key, template]) => (
           <button
             key={key}
-            onClick={() => setSelectedImageProvider(key)}
+            onClick={() => {
+              setSelectedImageProvider(key);
+              setError(null);
+            }}
             className={`p-4 border rounded-lg text-left transition-colors ${
               selectedImageProvider === key
-                ? 'border-blue-500 bg-blue-50'
-                : 'border-gray-200 hover:border-gray-300'
+                ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
             }`}
           >
             <div className="font-medium">{template.name}</div>
@@ -378,11 +430,14 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
         ))}
         
         <button
-          onClick={() => setSelectedImageProvider('')}
+          onClick={() => {
+            setSelectedImageProvider('');
+            setError(null);
+          }}
           className={`p-4 border rounded-lg text-left transition-colors ${
             selectedImageProvider === ''
-              ? 'border-blue-500 bg-blue-50'
-              : 'border-gray-200 hover:border-gray-300'
+              ? 'border-blue-500 bg-blue-50 ring-2 ring-blue-200'
+              : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
           }`}
         >
           <div className="font-medium">暂不配置图像API</div>
@@ -390,18 +445,20 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
         </button>
       </div>
 
-      <div className="flex space-x-3">
-        <Button variant="ghost" onClick={() => setCurrentStep(selectedTextProvider === 'custom' ? 'custom-config' : 'text-config')} className="flex-1">
-          <ChevronLeft className="w-4 h-4 mr-2" />
-          上一步
-        </Button>
-        <Button 
-          onClick={() => setCurrentStep(selectedImageProvider ? 'image-config' : 'complete')} 
-          className="flex-1"
-        >
-          下一步
-          <ChevronRight className="w-4 h-4 ml-2" />
-        </Button>
+      <div className="shrink-0 space-y-3">
+        <div className="flex space-x-3">
+          <Button variant="ghost" onClick={() => handleStepChange(selectedTextProvider === 'custom' ? 'custom-config' : 'text-config')} className="flex-1">
+            <ChevronLeft className="w-4 h-4 mr-2" />
+            上一步
+          </Button>
+          <Button 
+            onClick={() => handleStepChange(selectedImageProvider ? 'image-config' : 'complete')} 
+            className="flex-1"
+          >
+            下一步
+            <ChevronRight className="w-4 h-4 ml-2" />
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -429,6 +486,7 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
               placeholder="输入API密钥"
               value={imageConfig.apiKey || ''}
               onChange={(e) => setImageConfig((prev: Record<string, string>) => ({ ...prev, apiKey: e.target.value }))}
+              onFocus={() => setError(null)}
             />
           </div>
 
@@ -440,19 +498,31 @@ export const StepByStepApiWizard: React.FC<StepByStepApiWizardProps> = ({ isOpen
                 placeholder="输入Secret Key"
                 value={imageConfig.secretKey || ''}
                 onChange={(e) => setImageConfig((prev: Record<string, string>) => ({ ...prev, secretKey: e.target.value }))}
+                onFocus={() => setError(null)}
               />
             </div>
           )}
         </div>
 
+        {error && (
+          <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded border border-red-100 animate-in fade-in slide-in-from-bottom-2">
+            {error}
+          </div>
+        )}
+
         <div className="flex space-x-3">
-          <Button variant="ghost" onClick={() => setCurrentStep('image-provider')} className="flex-1">
+          <Button variant="ghost" onClick={() => handleStepChange('image-provider')} className="flex-1">
             <ChevronLeft className="w-4 h-4 mr-2" />
             上一步
           </Button>
           <Button 
-            onClick={() => setCurrentStep('complete')} 
-            disabled={!imageConfig.apiKey || (selectedImageProvider === 'baidu' && !imageConfig.secretKey)}
+            onClick={() => {
+              if (!imageConfig.apiKey || (selectedImageProvider === 'baidu' && !imageConfig.secretKey)) {
+                setError('请填写完整的API配置信息');
+                return;
+              }
+              handleStepChange('complete');
+            }}
             className="flex-1"
           >
             下一步
