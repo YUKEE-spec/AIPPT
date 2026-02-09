@@ -56,8 +56,6 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
           enabled: true,
         });
         // 自动展开编辑
-        // 注意：addTextApi 是同步的，但获取新 ID 比较麻烦，这里暂时假设用户会去点编辑
-        // 更好的体验是添加后自动进入编辑模式，或者弹出一个添加弹窗
       }
     } else {
       const template = API_TEMPLATES.image[provider as keyof typeof API_TEMPLATES.image];
@@ -71,11 +69,11 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
     }
   };
 
-  const handleUpdateApi = (id: string, field: string, value: any) => {
+  const handleUpdateApi = (id: string, field: string, value: string | number | boolean) => {
     if (activeTab === 'text') {
-      updateTextApi(id, { [field]: value });
+      updateTextApi(id, { [field]: value } as any);
     } else {
-      updateImageApi(id, { [field]: value });
+      updateImageApi(id, { [field]: value } as any);
     }
     // 清除缓存，确保下次请求使用新配置
     clearApiConfigCache();
@@ -96,10 +94,12 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
     const file = event.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = (e: ProgressEvent<FileReader>) => {
         try {
           const content = e.target?.result as string;
-          importConfig(content);
+          if (content) {
+            importConfig(content);
+          }
         } catch (error) {
           alert('配置文件格式错误');
         }
@@ -232,7 +232,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
               <label className="block text-sm font-medium mb-1">名称</label>
               <Input
                 value={api.name}
-                onChange={(e) => handleUpdateApi(api.id, 'name', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'name', e.target.value)}
                 placeholder="API名称"
               />
             </div>
@@ -243,7 +243,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                 <Input
                   type={showKey ? 'text' : 'password'}
                   value={api.apiKey}
-                  onChange={(e) => handleUpdateApi(api.id, 'apiKey', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'apiKey', e.target.value)}
                   placeholder="输入API密钥"
                   className="flex-1"
                 />
@@ -261,7 +261,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                 <label className="block text-sm font-medium mb-1">Base URL</label>
                 <Input
                   value={api.baseUrl || ''}
-                  onChange={(e) => handleUpdateApi(api.id, 'baseUrl', e.target.value)}
+                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'baseUrl', e.target.value)}
                   placeholder="API基础URL"
                 />
               </div>
@@ -275,7 +275,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                   <Input
                     type={showKey ? 'text' : 'password'}
                     value={api.secretKey || ''}
-                    onChange={(e) => handleUpdateApi(api.id, 'secretKey', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'secretKey', e.target.value)}
                     placeholder="输入Secret Key"
                     className="flex-1"
                   />
@@ -295,7 +295,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                 <input
                   type="checkbox"
                   id={`thinking_${api.id}`}
-                  checked={(api as any).enableThinking || false}
+                  checked={(api as TextApiConfig).enableThinking || false}
                   onChange={(e) => handleUpdateApi(api.id, 'enableThinking', e.target.checked)}
                   className="w-4 h-4"
                 />
@@ -309,7 +309,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
               <label className="block text-sm font-medium mb-1">模型</label>
               <Input
                 value={api.model || ''}
-                onChange={(e) => handleUpdateApi(api.id, 'model', e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'model', e.target.value)}
                 placeholder="模型名称"
               />
             </div>
@@ -321,7 +321,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                   <Input
                     type="number"
                     value={(api as TextApiConfig).maxTokens || ''}
-                    onChange={(e) => handleUpdateApi(api.id, 'maxTokens', parseInt(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'maxTokens', parseInt(e.target.value))}
                     placeholder="4096"
                   />
                 </div>
@@ -333,7 +333,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                     min="0"
                     max="2"
                     value={(api as TextApiConfig).temperature || ''}
-                    onChange={(e) => handleUpdateApi(api.id, 'temperature', parseFloat(e.target.value))}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'temperature', parseFloat(e.target.value))}
                     placeholder="0.7"
                   />
                 </div>
@@ -346,7 +346,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                   <label className="block text-sm font-medium mb-1">宽高比</label>
                   <select
                     value={(api as ImageApiConfig).aspectRatio || ''}
-                    onChange={(e) => handleUpdateApi(api.id, 'aspectRatio', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLSelectElement>) => handleUpdateApi(api.id, 'aspectRatio', e.target.value)}
                     className="w-full p-2 border rounded-md"
                   >
                     <option value="16:9">16:9</option>
@@ -360,7 +360,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                   <label className="block text-sm font-medium mb-1">分辨率</label>
                   <Input
                     value={(api as ImageApiConfig).resolution || ''}
-                    onChange={(e) => handleUpdateApi(api.id, 'resolution', e.target.value)}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'resolution', e.target.value)}
                     placeholder="1024x576"
                   />
                 </div>
@@ -369,7 +369,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
                     <label className="block text-sm font-medium mb-1">风格</label>
                     <Input
                       value={(api as ImageApiConfig).style || ''}
-                      onChange={(e) => handleUpdateApi(api.id, 'style', e.target.value)}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleUpdateApi(api.id, 'style', e.target.value)}
                       placeholder="realistic"
                     />
                   </div>
@@ -383,7 +383,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="API 配置管理" maxWidth="max-w-4xl">
+    <Modal isOpen={isOpen} onClose={onClose} title="API 配置管理" size="xl">
       <div className="flex flex-col h-[70vh]">
         <div className="flex space-x-4 border-b pb-2 mb-4">
           <button
@@ -414,7 +414,7 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
             <div className="flex space-x-2">
               <select
                 className="border rounded px-3 py-1.5 text-sm bg-white hover:border-blue-400 transition-colors focus:ring-2 focus:ring-blue-100 outline-none"
-                onChange={(e) => {
+                onChange={(e: React.ChangeEvent<HTMLSelectElement>) => {
                   if (e.target.value) {
                     handleAddApi(activeTab, e.target.value);
                     e.target.value = ''; // 重置选择
