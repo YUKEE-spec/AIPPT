@@ -152,6 +152,19 @@ docker compose up -d
 <br>
 Visit http://localhost:3000 to start using
 
+### ☁️ 部署到 Zeabur / Deploy to Zeabur
+
+无需服务器，一键部署到 Zeabur 平台。
+<br>
+Deploy to Zeabur platform with one click, no server required.
+
+👉 **[查看详细部署指南 / View Detailed Deployment Guide](ZEABUR_DEPLOY.md)**
+
+1. 将代码推送到 GitHub / Push code to GitHub
+2. 在 Zeabur 创建项目 / Create project on Zeabur
+3. 分别部署后端(backend)和前端(frontend)服务 / Deploy backend and frontend services separately
+4. 配置环境变量连接前后端 / Configure environment variables to connect frontend and backend
+
 ### 首次使用 / First Time Use
 1. 点击首页的 **"点击配置API"** 状态标签 / Click the **"Click to configure API"** status tag on homepage
 2. 跟随向导选择AI服务商并填入API密钥 / Follow the wizard to select AI provider and enter API key
