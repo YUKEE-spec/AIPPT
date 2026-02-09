@@ -21,8 +21,11 @@ echo "BACKEND_PORT=$BACKEND_PORT"
 echo "DNS_RESOLVER=$DNS_RESOLVER"
 
 # 替换 nginx 配置中的环境变量
-# 移除参数以避免潜在的解析问题，直接替换所有环境变量
-envsubst < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# 关键修复：显式指定要替换的变量，防止 envsubst 误替换 Nginx 内置变量（如 $host, $uri 等）
+# 注意：变量名列表必须用单引号包围，且不能包含 $ 符号（仅列出变量名）
+# envsubst 的参数格式是 '$VAR1 $VAR2'
+export EXISTING_VARS='${BACKEND_HOST} ${BACKEND_PORT} ${DNS_RESOLVER}'
+envsubst "$EXISTING_VARS" < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
 
 # 验证 nginx 配置
 nginx -t
