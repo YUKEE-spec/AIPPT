@@ -55,6 +55,9 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
           apiKey: '',
           enabled: true,
         });
+        // 自动展开编辑
+        // 注意：addTextApi 是同步的，但获取新 ID 比较麻烦，这里暂时假设用户会去点编辑
+        // 更好的体验是添加后自动进入编辑模式，或者弹出一个添加弹窗
       }
     } else {
       const template = API_TEMPLATES.image[provider as keyof typeof API_TEMPLATES.image];
@@ -151,26 +154,31 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
             {validation.isValid && <ApiTestButton api={api} />}
             <button
               onClick={() => toggleApiEnabled(api.type, api.id)}
-              className={`p-1 rounded ${api.enabled ? 'text-green-600' : 'text-gray-400'}`}
+              className={`p-1.5 rounded transition-colors ${api.enabled ? 'text-green-600 hover:bg-green-50' : 'text-gray-400 hover:bg-gray-100'}`}
+              title={api.enabled ? "已启用" : "已禁用"}
             >
               {api.enabled ? <Eye size={16} /> : <EyeOff size={16} />}
             </button>
             <button
               onClick={() => setEditingApi(isEditing ? null : api.id)}
-              className="p-1 text-gray-600 hover:text-blue-600"
+              className={`p-1.5 rounded transition-colors ${isEditing ? 'bg-blue-50 text-blue-600' : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'}`}
+              title="编辑配置"
             >
               <Settings size={16} />
             </button>
             <button
               onClick={() => {
-                if (api.type === 'text') {
-                  removeTextApi(api.id);
-                } else {
-                  removeImageApi(api.id);
+                if (window.confirm('确定要删除这个 API 配置吗？')) {
+                  if (api.type === 'text') {
+                    removeTextApi(api.id);
+                  } else {
+                    removeImageApi(api.id);
+                  }
+                  clearApiConfigCache();
                 }
-                clearApiConfigCache();
               }}
-              className="p-1 text-gray-600 hover:text-red-600"
+              className="p-1.5 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+              title="删除配置"
             >
               <Trash2 size={16} />
             </button>
@@ -375,142 +383,114 @@ export const ApiConfigModal: React.FC<ApiConfigModalProps> = ({ isOpen, onClose 
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="API配置管理" size="lg">
-      <div className="space-y-6">
-        {/* 标签页 */}
-        <div className="flex space-x-1 bg-gray-100 p-1 rounded-lg">
+    <Modal isOpen={isOpen} onClose={onClose} title="API 配置管理" maxWidth="max-w-4xl">
+      <div className="flex flex-col h-[70vh]">
+        <div className="flex space-x-4 border-b pb-2 mb-4">
           <button
-            onClick={() => setActiveTab('text')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors border-b-2 ${
               activeTab === 'text'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
+            onClick={() => setActiveTab('text')}
           >
-            文本生成API ({textApis.length})
+            文本生成模型 (LLM)
           </button>
           <button
-            onClick={() => setActiveTab('image')}
-            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 font-medium transition-colors border-b-2 ${
               activeTab === 'image'
-                ? 'bg-white text-blue-600 shadow-sm'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
             }`}
+            onClick={() => setActiveTab('image')}
           >
-            图像生成API ({imageApis.length})
+            图像生成模型
           </button>
         </div>
 
-        {/* 工具栏 */}
-        <div className="flex justify-between items-center">
-          <div className="flex space-x-2">
-            <select
-              onChange={(e) => {
-                if (e.target.value) {
-                  handleAddApi(activeTab, e.target.value);
-                  e.target.value = '';
-                }
-              }}
-              className="p-2 border rounded-md text-sm"
-              defaultValue=""
-            >
-              <option value="" disabled>添加API...</option>
-              {activeTab === 'text' ? (
-                <>
-                  <option value="google">Google Gemini</option>
-                  <option value="openai">OpenAI GPT</option>
-                  <option value="anthropic">Anthropic Claude</option>
-                  <option value="qwen">通义千问</option>
-                  <option value="baidu">百度文心一言</option>
-                  <option value="deepseek">DeepSeek</option>
-                  <option value="alibaba_bailian">阿里云百炼</option>
-                </>
-              ) : (
-                <>
-                  <option value="google">Google Gemini Image</option>
-                  <option value="jimeng">即梦AI</option>
-                  <option value="dalle">DALL-E 3</option>
-                  <option value="midjourney">Midjourney</option>
-                  <option value="stable-diffusion">Stable Diffusion</option>
-                  <option value="qwen">通义千问图像</option>
-                  <option value="baidu">文心一格</option>
-                  <option value="flux">Flux (OpenAI兼容)</option>
-                </>
+        <div className="flex-1 overflow-y-auto pr-2 space-y-4 custom-scrollbar">
+          {/* 顶部操作栏 */}
+          <div className="flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-100">
+            <div className="flex space-x-2">
+              <select
+                className="border rounded px-3 py-1.5 text-sm bg-white hover:border-blue-400 transition-colors focus:ring-2 focus:ring-blue-100 outline-none"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleAddApi(activeTab, e.target.value);
+                    e.target.value = ''; // 重置选择
+                  }
+                }}
+                defaultValue=""
+              >
+                <option value="">+ 添加新模型配置...</option>
+                {Object.keys(activeTab === 'text' ? API_TEMPLATES.text : API_TEMPLATES.image).map(
+                  (provider) => (
+                    <option key={provider} value={provider}>
+                      {provider}
+                    </option>
+                  )
+                )}
+              </select>
+              
+              {/* 模型高级配置按钮 (仅在文本模式显示) */}
+              {activeTab === 'text' && (
+                <button
+                  onClick={() => setIsModelConfigOpen(true)}
+                  className="flex items-center space-x-1 px-3 py-1.5 border rounded text-sm bg-white hover:bg-gray-50 hover:text-blue-600 transition-colors"
+                  title="配置默认模型参数"
+                >
+                  <Cpu size={14} />
+                  <span>模型参数</span>
+                </button>
               )}
-            </select>
+            </div>
+            
+            <div className="flex space-x-2">
+              <button
+                onClick={handleExportConfig}
+                className="flex items-center space-x-1 px-3 py-1.5 border rounded text-sm bg-white hover:bg-gray-50 text-gray-600 transition-colors"
+                title="导出当前配置到文件"
+              >
+                <Download size={14} />
+                <span>导出</span>
+              </button>
+              <label className="flex items-center space-x-1 px-3 py-1.5 border rounded text-sm bg-white hover:bg-gray-50 text-gray-600 cursor-pointer transition-colors" title="从文件导入配置">
+                <Upload size={14} />
+                <span>导入</span>
+                <input
+                  type="file"
+                  accept=".json"
+                  onChange={handleImportConfig}
+                  className="hidden"
+                />
+              </label>
+            </div>
           </div>
-          
-          <div className="flex space-x-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setIsModelConfigOpen(true)}
-              className="flex items-center space-x-1"
-            >
-              <Cpu size={16} />
-              <span>模型配置</span>
-            </Button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={handleExportConfig}
-              className="flex items-center space-x-1"
-            >
-              <Download size={16} />
-              <span>导出配置</span>
-            </Button>
-            <label className="cursor-pointer">
-              <input
-                type="file"
-                accept=".json"
-                onChange={handleImportConfig}
-                className="hidden"
-              />
-              <div className="inline-flex items-center justify-center font-semibold rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-banana-500 focus:ring-offset-2 bg-white border border-banana-500 text-black hover:bg-banana-50 h-8 px-3 text-sm">
-                <Upload size={16} />
-                <span className="ml-1">导入配置</span>
+
+          {/* API 列表 */}
+          <div className="space-y-4">
+            {(activeTab === 'text' ? textApis : imageApis).length === 0 ? (
+              <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                <p className="text-gray-500 mb-2">暂无配置</p>
+                <p className="text-sm text-gray-400">请从左上角下拉菜单添加一个模型配置</p>
               </div>
-            </label>
+            ) : (
+              (activeTab === 'text' ? textApis : imageApis).map(renderApiCard)
+            )}
           </div>
         </div>
-
-        {/* API列表 */}
-        <div className="space-y-4 max-h-96 overflow-y-auto">
-          {activeTab === 'text' ? (
-            textApis.length > 0 ? (
-              textApis.map(renderApiCard)
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                暂无文本生成API配置
-              </div>
-            )
-          ) : (
-            imageApis.length > 0 ? (
-              imageApis.map(renderApiCard)
-            ) : (
-              <div className="text-center py-8 text-gray-500">
-                暂无图像生成API配置
-              </div>
-            )
-          )}
-        </div>
-
-        {/* 说明 */}
-        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          <p className="font-medium mb-1">使用说明：</p>
-          <ul className="list-disc list-inside space-y-1">
-            <li>选择一个API作为默认使用的API</li>
-            <li>可以启用/禁用API，禁用的API不会在生成时使用</li>
-            <li>支持导出/导入配置文件，方便备份和分享</li>
-            <li>API密钥会安全存储在本地浏览器中</li>
-          </ul>
+        
+        <div className="mt-4 pt-4 border-t flex justify-end">
+          <Button variant="primary" onClick={onClose} className="px-6">
+            完成
+          </Button>
         </div>
       </div>
 
-      {/* 模型配置模态框 */}
-      <ModelConfigModal
-        isOpen={isModelConfigOpen}
-        onClose={() => setIsModelConfigOpen(false)}
+      {/* 模型参数配置弹窗 */}
+      <ModelConfigModal 
+        isOpen={isModelConfigOpen} 
+        onClose={() => setIsModelConfigOpen(false)} 
       />
     </Modal>
   );
