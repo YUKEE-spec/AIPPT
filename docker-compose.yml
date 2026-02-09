@@ -3,8 +3,8 @@ version: '3.8'
 services:
   backend:
     build:
-      context: .
-      dockerfile: backend/Dockerfile
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: banana-slides-backend
     ports:
       # 宿主机端口:容器内部端口（由 PORT 控制，默认 5000）
@@ -31,8 +31,8 @@ services:
 
   frontend:
     build:
-      context: .
-      dockerfile: frontend/Dockerfile
+      context: ./frontend
+      dockerfile: Dockerfile
       # Windows 兼容性：禁用符号链接跟随 + 前端构建参数
       args:
         DOCKER_BUILDKIT: 1
