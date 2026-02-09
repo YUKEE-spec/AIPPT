@@ -16,8 +16,16 @@ else
     echo "Detected DNS resolver: $DNS_RESOLVER"
 fi
 
+echo "BACKEND_HOST=$BACKEND_HOST"
+echo "BACKEND_PORT=$BACKEND_PORT"
+echo "DNS_RESOLVER=$DNS_RESOLVER"
+
 # 替换 nginx 配置中的环境变量
-envsubst '${BACKEND_HOST} ${BACKEND_PORT} ${DNS_RESOLVER}' < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+# 移除参数以避免潜在的解析问题，直接替换所有环境变量
+envsubst < /etc/nginx/conf.d/default.conf.template > /etc/nginx/conf.d/default.conf
+
+# 验证 nginx 配置
+nginx -t
 
 # 启动 nginx
 exec nginx -g 'daemon off;'
