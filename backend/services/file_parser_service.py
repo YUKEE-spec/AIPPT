@@ -13,7 +13,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from google import genai
 from google.genai import types
 from PIL import Image
-from markitdown import MarkItDown
+# from markitdown import MarkItDown
 
 logger = logging.getLogger(__name__)
 
@@ -74,7 +74,8 @@ class FileParserService:
             # Check if it's a spreadsheet file (xlsx, csv) - use markitdown
             if file_ext in ['xlsx', 'xls', 'csv']:
                 logger.info(f"File {filename} is a spreadsheet file, using markitdown...")
-                return self._parse_spreadsheet_file(file_path, filename)
+                # return self._parse_spreadsheet_file(file_path, filename)
+                return None, None, "Spreadsheet parsing unavailable (MarkItDown disabled)", 0
             
             # For other file types, use MinerU service
             logger.info(f"File {filename} requires MinerU parsing...")
@@ -192,14 +193,15 @@ class FileParserService:
         """
         try:
             # Use markitdown to convert spreadsheet to markdown
-            md = MarkItDown()
-            result = md.convert(file_path)
-            markdown_content = result.text_content
+            # md = MarkItDown()
+            # result = md.convert(file_path)
+            # markdown_content = result.text_content
             
-            logger.info(f"Spreadsheet file converted successfully: {len(markdown_content)} characters")
+            # logger.info(f"Spreadsheet file converted successfully: {len(markdown_content)} characters")
             
             # Spreadsheet files typically don't have images, so no need for caption enhancement
-            return None, markdown_content, None, 0
+            # return None, markdown_content, None, 0
+            return None, None, "MarkItDown disabled", 0
             
         except Exception as e:
             error_msg = f"Failed to parse spreadsheet file: {str(e)}"
